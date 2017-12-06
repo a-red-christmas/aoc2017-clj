@@ -19,8 +19,8 @@
   ([numstr sofar]
    (if (> (count numstr) 1)
      (if (= (first numstr) (second numstr))
-       (problem1_p1 (apply str (rest numstr)) (+ sofar (Character/digit (first numstr) 10)))
-       (problem1_p1 (apply str (rest numstr)) sofar))
+       (recur (apply str (rest numstr)) (+ sofar (Character/digit (first numstr) 10)))
+       (recur (apply str (rest numstr)) sofar))
      sofar)))
 
 (defn problem1_p2
@@ -209,29 +209,23 @@
       true?
       (problem4_p2_validray strs))))
 
+(defn problem5_core
+  [in index count withdec]
+  (if (or (< index 0) (>= index (clojure.core/count in)))
+    count
+    (let [newcount (inc count)
+          newindex (+ (in index) index)
+          newval (if (and withdec (>= (in index) 3)) (dec (in index)) (inc (in index)))
+          newvec (assoc in index newval)]
+      (recur newvec newindex newcount withdec))))
+
 (defn problem5_p1
-  ([in]
-   (problem5_p1 in 0 0))
-  ([in index count]
-   (if (or (< index 0) (>= index (clojure.core/count in)))
-     count
-     (let [newcount (inc count)
-           newindex (+ (in index) index)
-           newval (inc (in index))
-           newvec (assoc in index newval)]
-       (recur newvec newindex newcount)))))
+  [in]
+  (problem5_core in 0 0 false))
 
 (defn problem5_p2
-  ([in]
-   (problem5_p2 in 0 0))
-  ([in index count]
-   (if (or (< index 0) (>= index (clojure.core/count in)))
-     count
-     (let [newcount (inc count)
-           newindex (+ (in index) index)
-           newval (if (>= (in index) 3) (dec (in index)) (inc (in index)))
-           newvec (assoc in index newval)]
-       (recur newvec newindex newcount)))))
+  [in]
+  (problem5_core in 0 0 true))
 
 (defn problem6_newvec
   [in start points per]
