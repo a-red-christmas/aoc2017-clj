@@ -265,3 +265,75 @@
 (defn problem6_p2
   [in]
   (second (problem6_track in)))
+
+(defrecord problem7_obj [name weight belowstrs atop])
+
+(defn problem7_unique_index
+  [in]
+  (if (= (.indexOf in (first in)) (.lastIndexOf in (first in)))
+    0
+    (let [oddball (second (distinct in))]
+      (.indexOf in oddball))))
+
+(defn problem7_weight_supported
+  [graph obj]
+  (let [belowstrs (:belowstrs obj)
+        subobjs (map #(get graph %) belowstrs)
+        subweights (map #(problem7_weight_supported graph %) subobjs)
+        subseq (if (> (count subweights) 0) (apply = subweights) true)
+        subpassthrough (first (filter #(map? %) subweights))
+        ]
+    (if subseq
+      (apply + (:weight obj) subweights)
+      (if subpassthrough
+        subpassthrough
+        (let [
+              uniqindex (problem7_unique_index subweights)
+              delta (first (filter
+                      #(not (= % 0))
+                      (distinct (map
+                                  #(- % (nth subweights uniqindex))
+                                  subweights))))
+              uniqstr (nth belowstrs uniqindex)
+              uniqweight (:weight (nth subobjs uniqindex))
+              retVal {:delta delta :obj uniqstr :weight uniqweight :wanted (+ delta uniqweight)}]
+          retVal)))))
+
+(defn problem7_trampoline
+  [targetname]
+  (fn [graph]
+    (let [parent (-> (filter
+                       #(and (some? (-> % second :belowstrs)) (> (.indexOf (-> % second :belowstrs) targetname) -1))
+                       (-> graph seq))
+                     first
+                     second)]
+      (if-not (nil? parent)
+        (fn [] ( (:atop parent) graph))
+        targetname))))
+
+(defn problem7_spec2obj
+  [[name weightstr & deps]]
+  (let [weight (Integer/parseInt (clojure.string/replace weightstr #"[\(\)]" ""))
+        supportstrs (map #(clojure.string/replace % "," "") (rest deps))
+        supporter (problem7_trampoline name)]
+    (problem7_obj. name weight supportstrs supporter)))
+
+(defn problem7_initgraph
+  [instr]
+  (apply merge
+         (for [line (clojure.string/split-lines instr)]
+           (let [strs (clojure.string/split line #"\s+")]
+             {(first strs)
+              (problem7_spec2obj strs)}))))
+
+(defn problem7_p1
+  ([in]
+   (problem7_p1 in (problem7_initgraph in)))
+  ([in graph]
+   (trampoline (-> graph seq first second :atop) graph)))
+
+(defn problem7_p2
+  [in]
+  (let [graph  (problem7_initgraph in)
+        root (problem7_p1 in graph)]
+    (:wanted (problem7_weight_supported graph (get graph root)))))
