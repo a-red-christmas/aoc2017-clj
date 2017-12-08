@@ -337,3 +337,51 @@
   (let [graph  (problem7_initgraph in)
         root (problem7_p1 in graph)]
     (:wanted (problem7_weight_supported graph (get graph root)))))
+
+(comment "Useful for day 8. The normal Clojure way is (not (= arg1 arg2))")
+(defn !=
+  [& args]
+  (not (apply = args)))
+
+(defn problem8_action
+  [ctx [mod opstr amount _ test testop testamount]]
+  (let [modkey (keyword mod)
+        testkey (keyword test)
+        iniint (get ctx modkey 0)
+        op (if (= opstr "inc") +
+             (if (= opstr "dec") -))
+        op-int (Integer/parseInt amount)
+        testint (Integer/parseInt testamount)
+        testactual (get ctx testkey 0)]
+    (if ((ns-resolve *ns* (symbol testop)) testactual testint)
+       (assoc ctx modkey (op iniint op-int))
+       ctx)))
+
+(defn problem8_run_machine
+  ([lines-remaining]
+   (problem8_run_machine lines-remaining {}))
+  ([lines-remaining ctx]
+   (if (= (count lines-remaining) 0)
+     ctx
+     (let [linevec (clojure.string/split (clojure.string/trim (first lines-remaining)) #"\s+")
+           newctx (problem8_action ctx linevec)]
+       (recur (rest lines-remaining) newctx))))
+  ([lines-remaining ctx maxthusfar] ; This is just for part 2.
+   (if (= (count lines-remaining) 0)
+     maxthusfar
+     (let [linevec (clojure.string/split (clojure.string/trim (first lines-remaining)) #"\s+")
+           newctx (problem8_action ctx linevec)]
+       (recur (rest lines-remaining) newctx (apply max (conj (vals newctx) maxthusfar)))))))
+
+(defn problem8_p1
+  [data]
+  (apply
+    max
+    (vals
+      (let [lines (clojure.string/split-lines data)]
+        (problem8_run_machine lines)))))
+
+(defn problem8_p2
+  [data]
+  (let [lines (clojure.string/split-lines data)]
+    (problem8_run_machine lines {} 0)))
