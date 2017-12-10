@@ -385,3 +385,38 @@
   [data]
   (let [lines (clojure.string/split-lines data)]
     (problem8_run_machine lines {} 0)))
+
+(defn problem9_garbage
+  [str sum]
+  (let [this (first str)
+        next (rest str)]
+    (case this
+      \! (recur (rest next) sum)
+      \> {:next next :sum sum}
+      (recur next (inc sum)))))
+
+(defn problem9_subgroups
+  [in depth sum garbage]
+  (if (< (count in) 1)
+    {:next in :depth depth :sum sum :garbage garbage}
+    (let
+      [this (first in)
+       next (rest in)]
+      (case this
+        \{ (let [fromsub (problem9_subgroups next (inc depth) sum 0)]
+             (recur (:next fromsub) depth (:sum fromsub) (+ (-> fromsub :garbage) garbage)))
+        \} {:next next :depth depth :sum (+ sum depth) :garbage garbage}
+        \!  (recur (rest next) depth sum garbage)
+        \< (let [newgarbage (problem9_garbage next 0)]
+             (recur (:next newgarbage) depth sum (+ garbage (:sum newgarbage))))
+        (recur next depth sum garbage)))))
+
+(defn problem9_p1
+  ([in]
+   (->
+     (problem9_subgroups in 0 0 0) :sum)))
+
+(defn problem9_p2
+  [in]
+  (->
+  (problem9_subgroups in 0 0 0) :garbage))

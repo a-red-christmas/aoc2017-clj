@@ -2717,3 +2717,5 @@ hwz dec 66 if gsz > 4904
 ykc inc 435 if y < -1641
 xrh dec -733 if g >= -4781
 it inc 956 if cj <= -3556")
+
+(def data9 (slurp "inputs/day9"))
