@@ -420,3 +420,51 @@
   [in]
   (->
   (problem9_subgroups in 0 0 0) :garbage))
+
+(defn rotate
+  [in moveby]
+  (take (count in) (drop moveby (cycle in))))
+
+(defn rotate-back
+  [in moveby]
+  (let [oneway (mod moveby (count in))
+        otherway (- (count in) oneway)]
+    (rotate in otherway)))
+
+(defn problem10_sparse->dense
+  [in]
+  (map (partial apply bit-xor) (partition 16 16 in)))
+
+(defn problem10_dense->hexstr
+  [in]
+  (apply str (map #(apply str (take-last 2 (concat "0" (Integer/toHexString %)))) in)))
+
+(defn problem10_engine
+  ([in max]
+   (problem10_engine (vec (range max)) (vec in) 0 0))
+  ([in lens skip moved]
+   (if (> (count lens) 0)
+     (let [length (first lens)
+           newvec (vec (apply conj (vec (reverse (take length in))) (drop length in)))
+           actualvec (vec (rotate newvec (+ skip length)))
+           totalmoved (+ skip length moved)]
+       (recur actualvec (vec (rest lens)) (inc skip) totalmoved))
+     {:vec in :moved moved :skip skip})))
+
+(defn problem10_p1
+  [in]
+  (let [invec (map #(Integer/parseInt %) (clojure.string/split in #","))
+        raw_ans (problem10_engine invec 256)
+        ans (rotate-back (:vec raw_ans) (:moved raw_ans))
+        a (first ans)
+        b (second ans)]
+    (* a b)))
+
+(defn problem10_p2
+  [in]
+  (let [lengths (concat (map int (map char in)) [17, 31, 73, 47, 23])
+        manylengths (take (* 64 (count lengths)) (cycle lengths))
+        state (problem10_engine manylengths 256)
+        sparse (rotate-back (:vec state) (:moved state))
+        hexstr (-> sparse problem10_sparse->dense problem10_dense->hexstr)]
+    hexstr))
