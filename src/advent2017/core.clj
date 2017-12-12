@@ -545,3 +545,36 @@
   (-> (clojure.string/split in #",")
       problem11_state
       :maxdist))
+
+(defn problem12_build
+  [lines]
+  (apply merge (for [curline lines]
+                 (let [line (clojure.string/split (clojure.string/trim curline) #"[^\d]+")]
+                   {(first line) (rest line)}))))
+
+(defn problem12_all_conn
+  ([graph to]
+   (problem12_all_conn graph to #{}))
+  ([graph to all]
+   (let [glom (peek to)
+         newall (conj all glom)
+         stack (vec (clojure.set/difference (set (apply conj (pop to) (get graph glom))) newall))]
+     (if (> (count stack) 0)
+       (recur graph stack newall)
+       newall))))
+
+(defn problem12_getallgroups
+  [graph]
+  (distinct (map #( problem12_all_conn graph [%]) (keys graph))))
+
+(defn problem12_p1
+  [in]
+  (let [graph (problem12_build (clojure.string/split-lines in))
+        ans (count (problem12_all_conn graph ["0"]))]
+    ans))
+
+(defn problem12_p2
+  [in]
+  (let [graph (problem12_build (clojure.string/split-lines in))
+        ans (count (problem12_getallgroups graph))]
+    ans))
