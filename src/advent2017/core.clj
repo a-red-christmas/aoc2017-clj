@@ -468,3 +468,80 @@
         sparse (rotate-back (:vec state) (:moved state))
         hexstr (-> sparse problem10_sparse->dense problem10_dense->hexstr)]
     hexstr))
+
+(defn problem11_state->dist
+  [state]
+  (apply + (vals (dissoc state :maxdist))))
+
+(defn problem11_doadj
+  [state to]
+  (let [strto (name to)
+        strdir (-> strto first str keyword)
+        from (keyword (let [f (first strto)
+                            newf (if (= f \n) \s \n)
+                            from (str newf (second strto))]
+                        from))
+        valdir ((keyword strdir) state)
+        valfrom (from state)
+        canact (and (!= 0 valdir) (!= 0 valfrom))]
+    (if canact (let [diff (min valdir valfrom)
+                     newto (+ (to state) diff)
+                     newdir (- valdir diff)
+                     newfrom (- valfrom diff)
+                     newstate (merge state {(keyword to) newto (keyword strdir) newdir from newfrom})]
+                 newstate)
+      state)))
+
+(defn problem11_adj
+  [state adjpossible]
+  (if-let [moveto (first adjpossible)]
+    (recur (problem11_doadj state moveto) (rest adjpossible))
+    (if (> (count adjpossible) 0)
+      (recur state (rest adjpossible))
+      state)))
+
+(defn problem11_state->consolidate
+  [{:keys [nw n ne sw s se] :as state}]
+  (let [myn (- n (min n s)) ;; Consolidate opposites
+        mys (- s (min n s))
+        mynw (- nw (min se nw))
+        myse (- se (min se nw))
+        myne (- ne (min sw ne))
+        mysw (- sw (min sw ne))]
+    (let [my2nw (- mynw (min mynw myne)) ;; Consolidate norths and souths to point just north or south
+          my2n (+ myn (min mynw myne))
+          my2ne (- myne (min mynw myne))
+          my2sw (- mysw (min mysw myse))
+          my2s (+ mys (min mysw myse))
+          my2se (- myse (min mysw myse))
+          newstate (merge state {:nw my2nw :n my2n :ne my2ne :sw my2sw :s my2s :se my2se})]
+      (let [mystate (problem11_adj newstate [:nw :ne :sw :se])]
+        (if (= mystate state)
+          state
+          (recur mystate))))))
+
+(defn problem11_state
+  ([in]
+   (problem11_state in {:nw 0 :n 0 :ne 0 :sw 0 :s 0 :se 0 :maxdist 0}))
+  ([in state]
+   (if (= (count in) 0)
+     state
+     (let [now (first in)
+           nowkey (keyword now)
+           newstate (problem11_state->consolidate (assoc state nowkey (inc (nowkey state))))
+           newstate (assoc newstate :maxdist (max
+                                               (:maxdist newstate)
+                                               (-> newstate problem11_state->dist)))]
+       (recur (rest in) newstate)))))
+
+(defn problem11_p1
+  [in]
+  (-> (clojure.string/split in #",")
+      problem11_state
+      problem11_state->dist))
+
+(defn problem11_p2
+  [in]
+  (-> (clojure.string/split in #",")
+      problem11_state
+      :maxdist))
