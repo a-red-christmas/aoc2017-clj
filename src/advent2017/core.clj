@@ -578,3 +578,32 @@
   (let [graph (problem12_build (clojure.string/split-lines in))
         ans (count (problem12_getallgroups graph))]
     ans))
+
+(defn problem13_catchscore
+  [[d r]]
+  (let [backtotop (* 2 (- r 1))
+        iscaught (= 0 (mod d backtotop))]
+    (if iscaught (* d r) 0)))
+
+(defn problem13_catchtrue
+  [[d r] delay]
+  (let [backtotop (* 2 (- r 1))
+        iscaught (= 0 (mod (+ delay d) backtotop))]
+    iscaught))
+
+(defn problem13_p1
+  [in]
+  (let [lines (map #(clojure.string/split % #"[^\d]+") (clojure.string/split-lines in))
+        allmap (merge (for [line lines] {(-> line first Integer/parseInt) (-> line second Integer/parseInt)}))
+        allsum (apply + (map #(problem13_catchscore (-> % vec first)) (vec allmap)))]
+    allsum))
+
+(defn problem13_p2
+  ([in]
+  (let [lines (map #(clojure.string/split % #"[^\d]+") (clojure.string/split-lines in))
+        allmap (vec (for [line lines] [(-> line first Integer/parseInt) (-> line second Integer/parseInt)]))]
+    (problem13_p2 allmap 0)))
+  ([allmap delay]
+   (if (= (count (filter true? (map #(problem13_catchtrue % delay) allmap))) 0)
+     delay
+     (recur allmap (inc delay)))))
