@@ -607,3 +607,86 @@
    (if (= (count (filter true? (map #(problem13_catchtrue % delay) allmap))) 0)
      delay
      (recur allmap (inc delay)))))
+
+(defn problem14_strtobin
+  [in]
+  (let [hash (problem10_p2 in)
+        asbin (apply str
+                     (map
+                       #(apply str
+                               (take-last 4
+                                          (concat
+                                            "0000"
+                                            (Integer/toString
+                                              (Integer/parseInt (str %) 16)
+                                              2))))
+                       hash))]
+    asbin))
+
+(defn problem14_allbins
+  [in]
+  (vec (for [i (range 128)]
+         (let [subj (str in "-" i)]
+           (problem14_strtobin subj)))))
+
+(defn problem14_countones
+  [invec]
+  (count (filter #(= \1 %) (apply str invec))))
+
+(defn problem14_p1
+  [in]
+  (-> in problem14_allbins problem14_countones))
+
+(defn problem14_indinstr
+  ([in]
+   (problem14_indinstr in "1"))
+  ([in of]
+   (problem14_indinstr in of 0 []))
+  ([in of ind sofar]
+   (let [newind (clojure.string/index-of in of ind)]
+     (if (nil? newind)
+       sofar
+       (do (assert (= (str (get in newind)) "1") (str (get in newind)))
+           (recur in of (inc newind) (conj sofar newind)))))))
+
+(defn problem14_ones->locations
+  ([in]
+   (problem14_ones->locations in 0 []))
+  ([in level arg]
+   (if (= (count in) 0)
+     arg
+     (let [ind (mapv #(conj [level] %) (problem14_indinstr (first in)))]
+       (recur (rest in) (inc level) (into arg ind))))))
+
+(defn problem14_loc->locs
+  [[a b]]
+  #{[(dec a) b] [a (dec b)] [(inc a) b] [a (inc b)]})
+
+(defn problem14_locs->region
+  ([alllocs]
+    (problem14_locs->region alllocs (hash-set (first alllocs)) (hash-set)))
+  ([alllocs find-neighbors allinregion]
+   (if (= 0 (count find-neighbors))
+     allinregion
+     (let [origin (first (vec find-neighbors))
+           allasset (apply hash-set alllocs)
+           newbies (clojure.set/intersection allasset (problem14_loc->locs origin))
+           want (clojure.set/difference newbies (hash-set origin) allinregion)
+           next-neighbors (clojure.set/union want (clojure.set/difference find-neighbors (hash-set origin)))
+           next-allinregion (clojure.set/union allinregion want (hash-set origin))]
+       (recur alllocs next-neighbors next-allinregion)))))
+
+(defn problem14_allregions
+  ([all]
+   (problem14_allregions all []))
+  ([all allregions]
+   (if (= 0 (count all))
+     allregions
+     (let [newregion (problem14_locs->region all)
+           next-all (clojure.set/difference (apply hash-set all) newregion)
+           next-allregions (conj allregions newregion)]
+       (recur next-all next-allregions)))))
+
+(defn problem14_p2
+  [in]
+  (-> in problem14_allbins problem14_ones->locations problem14_allregions count))
