@@ -1,5 +1,6 @@
 (ns advent2017.core
-  (:use (advent2017.data)))
+  (:use (advent2017.data))
+  (:require [taoensso.tufte :as tufte :refer (defnp p)]))
 
 (defn reload []  (use 'advent2017.data :reload) (use 'advent2017.core :reload))
 
@@ -690,3 +691,152 @@
 (defn problem14_p2
   [in]
   (-> in problem14_allbins problem14_ones->locations problem14_allregions count))
+
+(def problem15_factors {:A 16807 :B 48271})
+
+(def problem15_start {:A 873 :B 583})
+
+(def problem15_mod {:A 4 :B 8})
+
+(defn problem15_nextnum
+  [prev fact]
+  (mod (* prev fact) 2147483647))
+
+(defn problem15_rungen
+  ([which lastval]
+   (problem15_nextnum lastval (which problem15_factors))))
+
+(defn problem15_tobin
+  [num]
+  (Integer/toString num 2))
+
+(defn problem15_judge
+  ([]
+   (problem15_judge (:A problem15_start) (:B problem15_start) 0 0))
+  ([lastA lastB nummatch numrun]
+   (if (>= numrun (* 4 1000 1000 10))
+     nummatch
+     (let [newA (problem15_rungen :A lastA)
+           newB (problem15_rungen :B lastB)
+           domatch (= (take-last 16 (Integer/toString newA 2))
+                      (take-last 16 (Integer/toString newB 2)))
+           next-nummatch (if domatch (inc nummatch) nummatch)
+           next-numrun (inc numrun)]
+       (recur newA newB next-nummatch next-numrun)))))
+
+(defn problem15_p2_nextnum
+  [prev fact ofmod]
+  (let [retVal (mod (* prev fact) 2147483647)]
+    (if (= 0 (mod retVal ofmod))
+      retVal
+      (recur retVal fact ofmod))))
+
+(defn problem15_p2_rungen
+  ([which lastval]
+   (problem15_p2_nextnum lastval (which problem15_factors) (which problem15_mod))))
+
+(defn problem15_p2_judge
+  ([]
+   (problem15_p2_judge (:A problem15_start) (:B problem15_start) 0 0))
+  ([lastA lastB nummatch numrun]
+   (if (>= numrun (* 5 1000 1000))
+     nummatch
+     (let [newA (problem15_p2_rungen :A lastA)
+           newB (problem15_p2_rungen :B lastB)
+           domatch (= (take-last 16 (Integer/toString newA 2))
+                      (take-last 16 (Integer/toString newB 2)))
+           next-nummatch (if domatch (inc nummatch) nummatch)
+           next-numrun (inc numrun)]
+       (recur newA newB next-nummatch next-numrun)))))
+
+(defn problem16_toindex
+  [in]
+  (.indexOf "abcefghijklmnopqrstuvwxyz" in))
+
+(defn problem16_spin
+  [from num]
+  (let [tofront (vec (take-last num from))
+        toend (vec (drop-last num from))]
+    (apply str (into tofront toend))))
+
+(defn problem16_doswitch
+  [from indA indB]
+  (let [firstInd (min indA indB)
+        A (get from firstInd)
+        secondInd (max indA indB)
+        B (get from secondInd)
+        firstVec (vec (take firstInd from))
+        middleVec (subvec (vec from) (inc firstInd) secondInd)
+        lastVec (subvec (vec from) (inc secondInd))]
+    (apply str (into (conj firstVec B) (into (conj middleVec A) lastVec)))))
+
+(defn problem16_exchange
+  [from A B]
+  (problem16_doswitch from A B))
+
+(defn problem16_partner
+  [from A B]
+  (problem16_doswitch from (.indexOf from A) (.indexOf from B)))
+
+(defn problem16_s
+  [from arg]
+  (p ::16-spin (problem16_spin from (Integer/parseInt arg))))
+
+(defn problem16_x
+  [from arg]
+  (let [args (clojure.string/split arg #"/")
+        A (Integer/parseInt (first args))
+        B (Integer/parseInt (second args))]
+  (p ::16-exchange (problem16_exchange from A B))))
+
+(defn problem16_p
+  [from arg]
+  (let [args (clojure.string/split arg #"/")
+        A (first args)
+        B (second args)]
+  (p ::16-partner (problem16_partner from A B))))
+
+(defn problem16_run_token
+  [from cmd]
+  (p ::16-run_token ((p ::16-ns-resolve (ns-resolve *ns* (symbol (str "problem16_" (first cmd))))) from (apply str (rest cmd)))))
+
+(def problem16_run_token_memo (memoize problem16_run_token))
+
+(defn problem16_do_tokens
+  [from tokens]
+  (if (> (count tokens) 0)
+    (recur (problem16_run_token_memo from (first tokens)) (rest tokens))
+    from))
+
+(defn problem16_p1
+  [tokenstr]
+  (let [alltokens (clojure.string/split tokenstr #",")]
+    (problem16_do_tokens "abcdefghijklmnop" alltokens)))
+
+(defn problem16_p2
+  ([tokenstr]
+   (let [alltokens (clojure.string/split tokenstr #",")]
+     (problem16_p2 alltokens "abcdefghijklmnop" 0)))
+  ([alltokens instr num]
+   (prn num)
+   (if (= (* 1 1000 1000 1000) num)
+     instr
+     (recur alltokens (problem16_do_tokens instr alltokens) (inc num)))))
+
+(defn problem17_cycle
+  ([numrot max]
+   (problem17_cycle [0] max numrot 1))
+  ([in max numrot num]
+   (if (= 0 (mod num 100)) (prn num))
+   (if (<= num max)
+     (recur (vec (rotate (conj (vec (rotate in numrot)) num) 1)) max numrot (inc num))
+     in)))
+
+(defn problem17_p1
+  [in]
+  (second (problem17_cycle in 2017)))
+
+(defn problem17_p2
+  [in]
+  (let [thecycle (problem17_cycle in 50000000)]
+    (nth thecycle (.indexOf thecycle 0))))
