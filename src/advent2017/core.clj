@@ -802,26 +802,30 @@
 
 (def problem16_run_token_memo (memoize problem16_run_token))
 
-(defn problem16_do_tokens
-  [from tokens]
-  (if (> (count tokens) 0)
-    (recur (problem16_run_token_memo from (first tokens)) (rest tokens))
-    from))
+(def problem16_do_tokens
+  (memoize
+    (fn
+      [from tokens]
+      (if (> (count tokens) 0)
+        (recur (problem16_run_token_memo from (first tokens)) (rest tokens))
+        from))))
 
 (defn problem16_p1
   [tokenstr]
   (let [alltokens (clojure.string/split tokenstr #",")]
     (problem16_do_tokens "abcdefghijklmnop" alltokens)))
 
-(defn problem16_p2
-  ([tokenstr]
-   (let [alltokens (clojure.string/split tokenstr #",")]
-     (problem16_p2 alltokens "abcdefghijklmnop" 0)))
-  ([alltokens instr num]
-   (prn num)
-   (if (= (* 1 1000 1000 1000) num)
-     instr
-     (recur alltokens (problem16_do_tokens instr alltokens) (inc num)))))
+(def problem16_p2
+  (memoize
+  (fn
+    ([tokenstr]
+     (let [alltokens (clojure.string/split tokenstr #",")]
+       (problem16_p2 alltokens "abcdefghijklmnop" 0)))
+    ([alltokens instr num]
+     (if (= (mod num 10000) 0) (prn num))
+     (if (= (* 1 1000 1000 1000) num)
+       instr
+       (recur alltokens (problem16_do_tokens instr alltokens) (inc num)))))))
 
 (defn problem17_cycle
   ([numrot max]
